@@ -1,0 +1,16 @@
+{"version":3,
+ "file":
+ "/Users/jmsb/rtc/resources/public/javascripts/main/out/rtc/prefix.js",
+ "sources":["prefix.cljs"],
+ "lineCount":76,
+ "mappings":
+ ";AAAA;;;;;;;;;;;;AAYA;;;;;oBAAA,pBAAMA;;iCAAN,NAGIC,MAAM,OAACC,iBAAOC,OAAUF;;;0DAH5B,vBAIIG,OAAOH,KAAOI,WACb,eAAA,mFAAA,SAAA,MAAA,7GACMC,8HAEAC,aAAW,gDAAK,AAACC,oCAAkB,8BAAA,EAAA,hCAACC,yBAAKR,wDACzB,8BAAA,9BAACQ,yBAAKR,cAEtBK,eAAS,yBAAA,zBAACI,4DACK,AAACC,wBAAI,4CAAA,5CAACE,yBAAKC;kBAANF,kBAAA,AAAgB,uDAAAA,8DAAOL;;EAAaD,eAExDA,eAAS,uCAAA,vCAACS,0BAAMT,gBAAYL,UAE5BK,eAAS,AAACU,yBAAK,AAACC,0BAAMX,aAASD,gBAE/BC,eAAS,wBAAA,xBAACK;kBAADO,kBAAA,AAAM,eAAAA,PAAMd;;eAb3B,dAaqCE,cAEnC,gCAAA,zBAACc;kBAADD,kBAAA,AAAO,GAAA,EAAQ,CAAAA,oBAAA;CAARA;;CAAA;;;CAAoBb;;yBAhB9BF,OAAOH;IAAOI;EAAAA;oCAAdD,OAAOH,KAAOI;;;IAAdD;;IAAOH;IAAOI;0BAAdD,OAAOH,KAAOI;;;;;;kBAAdD,OAAOH;IAAOI;;;2BAAdD;;sDAAAA,OAAOH;;;;;;;;;;;AAkBX,AAAKoB,uBACH,4BAAA,5BAACrB;AAEH,AAAKsB,+BACH,4BAAA,5BAACtB;AAEH,AAAKuB,+BACH,sCAAA,tCAACvB,4BAAOwB",
+ "names":
+ ["rtc.prefix/prefix", "name", "prefix", "js/window", "source",
+  "specifics", "prefixes", "upper-name", "clojure.string/upper-case",
+  "cljs.core/subs", "cljs.core/into", "cljs.core/map", "p1__19042#",
+  "cljs.core/juxt", "cljs.core/identity", "cljs.core/assoc",
+  "cljs.core/vals", "cljs.core/merge", "p1__19043#", "p1__19044#",
+  "cljs.core/some", "rtc.prefix/indexedDB",
+  "rtc.prefix/RTCPeerConnection", "rtc.prefix/PersistentStorage",
+  "js/navigator"]}
