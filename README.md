@@ -1,6 +1,8 @@
 # rtc
 
-FIXME
+Working on scultping out an web rtc om component.
+
+Currently a (barely) working example of using clojure/clojurescript to coordinate two peer connections with a data channel.
 
 ## Prerequisites
 
