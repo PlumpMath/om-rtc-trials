@@ -8,6 +8,7 @@ Uses Om for client side rendering.
 
 *Totally almost there, you guys.*
 
+As of now, the example works--it's just very non-obvious how. My bad. Will keep chiseling.
 
 ## Prerequisites
 
