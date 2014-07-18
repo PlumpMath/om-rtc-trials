@@ -30,6 +30,7 @@
     ;:init 
     ;:igum (notify-user uuid room [:answer])
     :connect (notify-user uuid room [:offer])
+    :stream-added (notify-user uuid room [:r-stream-added])
     :s-candidate (notify-user uuid room [:r-candidate val])
     :s-offer (notify-user uuid room [:r-offer val])
     (println sig)))

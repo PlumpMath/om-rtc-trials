@@ -1,10 +1,9 @@
 (ns rtc.main
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
-  ( :require [cljs.reader :as reader]
+  ( :require [cljs.reader :refer [read-string]]
              [goog.events :as events]
              [goog.dom :as gdom]
-             [rtc.prefix :as prefix]
-             [rtc.messaging :as msg]
+             [om-websocket.core :refer [om-websocket] :as ws]
              [om-tools.core :refer-macros [defcomponent]]
              [om-tools.dom :as dom :include-macros true]
              [goog.debug :as debug]
@@ -14,7 +13,7 @@
 
 (enable-console-print!)
 
-(def app-state (atom {:shit "whatever"}))
+(def app-state (atom {}))
 
 (defn handle-stream [owner stream node]
   (om/set-state! owner :stream stream)
@@ -27,16 +26,19 @@
 
 (defn vid-loop [owner data vidc]
   (go-loop [[key ref stream] (<! vidc)]
-           (let [webc (om/get-shared owner :webc)
+           (let [webc (om/get-shared owner :websocket->)
                  pc (om/get-state owner :pc)
                  role (@data :role)
                  ]
+             
              (case key
                :local (let [node (om/get-node owner ref)]
-                       (.addStream pc stream) 
-                       (put! webc (if (= role :initiator) [:igum] [:rgum]))
+                        (.addStream pc stream)
+                        (when (= role :joiner)
+                          (put! webc [:stream-added]))
                        (handle-stream owner stream node))
                :remote (let [node (om/get-node owner ref)]
+                         (print "HEY I AM BEING RAN")
                          (handle-stream owner stream node)
                          )
                (print "TROUBLE IN VID-LOOP")
@@ -49,8 +51,9 @@
 
 (def error #(print (.-name %)))
 
-(defn locals [owner c]
-  (js/getUserMedia (clj->js {:audio true}) #(put! c [:local "lvid"  %])  #(print (debug/expose %))))
+(defn locals [constraints owner c]
+  (let [constraints (clj->js constraints)]
+      (js/getUserMedia constraints #(put! c [:local "lvid"  %])  #(print (debug/expose %)))))
 
 (defn data-channel-coord [dc owner joint key]
   (let [dc-send-delta (partial joint :dc-send-delta)
@@ -67,8 +70,7 @@
 
 (defn r-candidate [pc val]
   (let [jscandidate (clj->js val)
-        rdescript (js/RTCIceCandidate. jscandidate)
-        ]
+        rdescript (js/RTCIceCandidate. jscandidate)]
     
     (.addIceCandidate pc rdescript)))
 
@@ -83,7 +85,7 @@
 
 (defn pc-loop [owner data]
   (let [pc-coord (om/get-shared owner :pc-coord)
-        webc (om/get-shared owner :webc)
+        webc (om/get-shared owner :websocket->)
         pc (om/get-state owner :pc)
         streamc (om/get-state owner :streamc)]
     (go-loop [[key val] (<! pc-coord)]
@@ -99,7 +101,7 @@
                :ondc (data-channel-coord (.-channel val) owner #(put! pc-coord [% %2]) :sc)
                :dc-send-delta (print key val)
                :dc-handle-message  (om/update-state! owner :msgs #(conj % (.-data val)))
-               :answer (print "here's an answer case, johann")
+               
                :offer (.createOffer pc #(put! pc-coord [:localsend %]) #(print %) #js {})
                :r-candidate (r-candidate pc val)
                :r-offer (r-offer pc val pc-coord data)
@@ -154,57 +156,99 @@
                 {:pc pc
                  :msgs []
                  :streamc (chan)}))
+  (did-update [_ nprops nstate]
+              (let [constraints (om/get-state owner :constraints)
+                    streamc (om/get-state owner :streamc)]
+                (when (not= (nstate :constraints) (om/get-state owner :constraints))
+                  (locals constraints owner streamc))))
   (will-mount [_]
               (let [streamc (om/get-state owner :streamc)]
                 (pc owner data)
-                #_(locals owner streamc)
+                
                 (vid-loop owner data streamc)
                 ))
   (render-state [_ {:keys [sc msgs]}]
-                (let [webc (om/get-shared owner :webc)]
+                (let [webc (om/get-shared owner :websocket->)]
                   (dom/div {:class "full flex"}
-                   (when sc
-                     (dom/div
-                      (dom/input {:type "text" :ref "dc"})
-                      (dom/button {:on-click #(dcsend owner)} "america")
-                      (dom/div
-                       (map (fn [msg]
-                              (dom/div msg)
-                              ) msgs))))
+                           (when sc
+                             (dom/div {:class "column flex"}
+                                      (dom/input {:type "text" :ref "dc"})
+                                      (dom/button {:on-click #(dcsend owner)} "send SECRET")
+                                      (dom/div
+                                       (map (fn [msg]
+                                              (dom/div msg)
+                                              ) msgs))))
                    
-                   (dom/video {:ref "lvid"})
-                   (dom/video {:ref "rvid"})))
+                           (dom/video {:ref "lvid"})
+                           (dom/video {:ref "rvid"})))
                 ))
 
-(defn set-room [data owner]
-  (let [node (om/get-node owner "room")
-        node-val (.-value node)
-        
+(defn selector [owner]
+  (let [sel (om/get-node owner "select")
+        constrainer #(om/set-state! owner :constraints %)
         ]
-    (om/update! data :room node-val)))
+    (case (.-value (aget (.-selectedOptions sel) 0))
+      "data-channel" (constrainer nil)
+      "audio" (constrainer {:audio true})
+      "video" (constrainer {:video true}))))
 
-(defcomponent room-space [{:keys [role] :as data} owner opts]
-  (render-state [_ _]
-                (let [webc (om/get-shared owner :webc)]
+(defcomponent room-space [{:keys [role r-stream-added] :as data} owner opts]
+  (render-state [_ {:keys [constraints]}]
+                (let [webc (om/get-shared owner :websocket->)]
                   (dom/div {:class "full flex"}
-                     
-                     
-                     
-                     
-
-                   #_(dom/button {:on-click #(put! webc [:init])} "connect")
-                   (when (= role :joiner) (dom/button {:on-click #(put! webc [:connect])} "start" ))
-                   (when (data :role) (om/build final-rtc data))
-                   ))
+                           (when (or r-stream-added (= role :joiner))
+                             (dom/select {:ref "select"
+                                          :on-change #(selector owner)}
+                                         (dom/option {:value "data-channel"} "data channel")
+                                         (dom/option {:value "audio"} "audio")
+                                         (dom/option {:value "video"} "video")))
+                           (when (= role :joiner) (dom/button {:on-click #(put! webc [:connect])} "start" ))
+                           (when (data :role) (om/build final-rtc data {:state {:constraints constraints}} ))
+                           ))
                 ))
 
 
 
+
+(defn in-coord [chan data owner]
+  (go-loop [signal (<! chan)]
+           (let [pc-coord (om/get-shared owner :pc-coord)
+                 sig (read-string signal)
+                 key (get sig 0)
+                 val (get sig 1)]
+             (print sig)
+             (case key
+               :created (om/update! data :role :initiator)
+               :joined (om/update! data :role :joiner)
+               :offer (put! pc-coord [key])
+               :r-candidate (put! pc-coord  [key val])
+               :r-stream-added (om/update! data :r-stream-added true)
+               :r-offer (put! pc-coord [key val])
+               (print "key :" key "val :" val "w"))
+             (recur (<! chan)))))
+
+
+(defn out-coord [chan data owner websock]
+  (let [sockout #(.send websock [% %2])]
+    (go-loop [[key val :as sig] (<! chan)]
+             
+               (case key
+                 ;:init (sockout key [client-id val])
+                 :connect  (sockout key "")
+                 :stream-added (sockout key "")
+                 ;:igum (sockout key client-id)
+                 :s-candidate  (sockout key val) #_(sockout key (js->clj val))
+                 :s-offer (sockout key val)  #_(sockout key (js->clj val))
+                 (print "whatever"))
+               (recur (<! chan)))))
 
 
 (defcomponent app-view [data owner]
   (render-state [_ _]
-                (om/build msg/websock data {:opts {:child room-space}})
+                (om/build om-websocket data {:opts {:connection-str (str "ws://" js/location.host "/ws")
+                                                    :in-coord in-coord
+                                                    :out-coord out-coord
+                                                    :child room-space}})
                 ))
 
 (om/root app-view
@@ -213,4 +257,4 @@
           :tx-listen #(print %)
           :shared {:vidc (chan)
                    :pc-coord (chan)
-                   :webc (chan)}})
+                   :websocket-> (chan)}})

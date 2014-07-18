@@ -4,6 +4,11 @@ Working on scultping out an web rtc om component.
 
 Currently a (barely) working example of using clojure/clojurescript to coordinate two peer connections with a data channel.
 
+Uses Om for client side rendering.
+
+*Totally almost there, you guys.*
+
+
 ## Prerequisites
 
 You will need [Leiningen][1] 1.7.0 or above installed.
@@ -12,9 +17,10 @@ You will need [Leiningen][1] 1.7.0 or above installed.
 
 ## Running
 
-To start a web server for the application, run:
+To start a web server for the application, run:      
 
-    lein ring server
+    lein cljsbuild release once     
+    lein trampoline run 5000 
 
 ## License
 
