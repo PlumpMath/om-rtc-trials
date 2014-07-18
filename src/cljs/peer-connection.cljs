@@ -34,7 +34,7 @@
     ))
 
 
-(defn pc-loop [owner data]
+(defn pc-loop [owner data settings]
   (let [pc-coord (om/get-shared owner :pc-coord)
         webc (om/get-shared owner :websocket->)
         pc (om/get-state owner :pc)
@@ -63,7 +63,7 @@
              (recur (<! pc-coord)))))
 
 
-(defn pc-coord [owner data]
+(defn pc-coord [owner data {data-channel :data-channel}]
   (let [pc (om/get-state owner :pc)
         pc-coord (om/get-shared owner :pc-coord)
         joint #(put! pc-coord [% %2])
@@ -77,11 +77,12 @@
     (set! (.-onicecandidate pc) ice)
     (set! (.-onaddstream pc) addstr)
     (set! (.-onremovestream pc) remstr)
-    (case (data :role)
-      :initiator (initdc pc owner joint)
-      :joiner (set! (.-ondatachannel pc) ondc))))
+    (when data-channel
+        (case (data :role)
+          :initiator (initdc pc owner joint)
+          :joiner (set! (.-ondatachannel pc) ondc)))))
 
 
-(defn pc [owner data]
-    (pc-coord owner data)
-    (pc-loop owner data))
+(defn pc [owner data settings]
+    (pc-coord owner data settings)
+    (pc-loop owner data settings))

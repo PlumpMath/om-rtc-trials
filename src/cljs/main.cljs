@@ -62,8 +62,8 @@
         node (om/get-node owner "dc")
         val (.-value node)
         ]
-    (.send sc val)))
-
+    (.send sc val)
+    (set! (.-value node) "")))
 
 
 (defcomponent final-rtc [data owner opts]
@@ -78,18 +78,15 @@
                 {:pc pc
                  :msgs []
                  :streamc (chan)}))
-  (did-update [_ nprops nstate]
-              (let [constraints (om/get-state owner :constraints)
-                    streamc (om/get-state owner :streamc)]
-                (when (not= (nstate :constraints) (om/get-state owner :constraints))
-                  (locals constraints owner streamc))))
+  
   (will-mount [_]
-              (let [streamc (om/get-state owner :streamc)]
-                (pc/pc owner data)
-                
+              (let [streamc (om/get-state owner :streamc)
+                    {:keys [constraints] :as settings} (om/get-state owner :settings)]
+                (pc/pc owner data settings)
+                (when constraints (locals constraints owner streamc))
                 (vid-loop owner data streamc)
                 ))
-  (render-state [_ {:keys [sc msgs]}]
+  (render-state [_ {:keys [sc msgs settings]}]
                 (let [webc (om/get-shared owner :websocket->)]
                   (dom/div {:class "full flex"}
                            (when sc
@@ -100,32 +97,24 @@
                                        (map (fn [msg]
                                               (dom/div msg)
                                               ) msgs))))
-                   
-                           (dom/video {:ref "lvid"})
-                           (dom/video {:ref "rvid"})))
+                           
+                           (when (settings :constraints)
+                             (dom/div
+                              (dom/video {:ref "lvid"})
+                              (dom/video {:ref "rvid"})))))
                 ))
 
-(defn selector [owner]
-  (let [sel (om/get-node owner "select")
-        constrainer #(om/set-state! owner :constraints %)
-        ]
-    (case (.-value (aget (.-selectedOptions sel) 0))
-      "data-channel" (constrainer nil)
-      "audio" (constrainer {:audio true})
-      "video" (constrainer {:video true}))))
+
 
 (defcomponent room-space [{:keys [role r-stream-added] :as data} owner opts]
   (render-state [_ {:keys [constraints]}]
                 (let [webc (om/get-shared owner :websocket->)]
                   (dom/div {:class "full flex"}
-                           (when (or r-stream-added (= role :joiner))
-                             (dom/select {:ref "select"
-                                          :on-change #(selector owner)}
-                                         (dom/option {:value "data-channel"} "data channel")
-                                         (dom/option {:value "audio"} "audio")
-                                         (dom/option {:value "video"} "video")))
-                           (when (= role :joiner) (dom/button {:on-click #(put! webc [:connect])} "start" ))
-                           (when (data :role) (om/build final-rtc data {:state {:constraints constraints}} ))
+                           (when (= role :joiner)
+                             (dom/button {:on-click #(put! webc [:connect])} "start" ))
+                           (when (data :role) 
+                             (om/build final-rtc data {:state {:settings {:data-channel false
+                                                                          :constraints {:video true}}}} ))
                            ))
                 ))
 
@@ -155,12 +144,12 @@
     (go-loop [[key val :as sig] (<! chan)]
              
                (case key
-                 ;:init (sockout key [client-id val])
+                 
                  :connect  (sockout key "")
                  :stream-added (sockout key "")
-                 ;:igum (sockout key client-id)
-                 :s-candidate  (sockout key val) #_(sockout key (js->clj val))
-                 :s-offer (sockout key val)  #_(sockout key (js->clj val))
+                 
+                 :s-candidate  (sockout key val) 
+                 :s-offer (sockout key val)  
                  (print "whatever"))
                (recur (<! chan)))))
 
