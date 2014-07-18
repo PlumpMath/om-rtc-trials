@@ -18,7 +18,7 @@ You will need [Leiningen][1] 1.7.0 or above installed.
 
 ## Running
 
-To start a web server for the application, run:      
+Clone this repo and enter the following commands in the directory in your terminal    
 
     lein cljsbuild release once     
     lein trampoline run 5000 
